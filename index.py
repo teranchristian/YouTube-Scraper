@@ -22,13 +22,32 @@ def main():
     youtube = googleapiclient.discovery.build(
         api_service_name, api_version, credentials=credentials)
 
-    test = getDataByCountry(youtube);
+    data = {}
+    countries = ['au', 'pe', 'us', 'gb', 'in', 'de', 'ca', 'fr', 'kr', 'ru', 'jp', 'br', 'mx']
+    for country in countries:
+        countryData = []
+        categories = getCategories(youtube, country);
+        categories = categories.get('items')
+        print("fetching data from country: " + country)
 
-    outDir = 'test.json'
+        for cat in categories:
+            catId = cat.get('id')
+            print("cat => " + catId)
+            catSnippet = cat.get('snippet')
+            print(catSnippet.get('assignable'))
+            if (catSnippet.get('assignable') == True or catSnippet.get('assignable') == 'True'):
+                print('------------------------')
+                countryData += getDataByCountry(youtube, catId, country);
+            else:
+                print("skip cat" + catId)
+        data[country] = countryData;
+
+    outDir = 'data.json'
     with open(outDir, "w+", encoding='utf-8') as file:
-        file.write(json.dumps(test))
+        file.write(json.dumps(data))
+        print("done!")
 
-def getDataByCountry(youtube):
+def getDataByCountry(youtube, catId, country):
     nextPageToken = '&';
     data = []
     while nextPageToken is not None:
@@ -36,15 +55,23 @@ def getDataByCountry(youtube):
             part="snippet",
             chart="mostPopular",
             maxResults=50,
-            regionCode="AU",
-            pageToken=nextPageToken
+            regionCode=country,
+            pageToken=nextPageToken,
+            videoCategoryId=catId
         )
         response = request.execute()
         data += response.get('items')
         nextPageToken = response.get("nextPageToken", None);
-        nextPageToken = None
         print(nextPageToken)
     return data
+
+def getCategories(youtube, country):
+    request = youtube.videoCategories().list(
+        part="snippet",
+        regionCode=country
+    )
+    response = request.execute()
+    return response
 
 if __name__ == "__main__":
     main()
