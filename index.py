@@ -1,6 +1,7 @@
 import os
 import json
 import sys, time
+import pickle
 
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
@@ -16,9 +17,21 @@ def main():
     client_secrets_file = "credentials.json"
 
     # Get credentials and create an API client
-    flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-        client_secrets_file, scopes)
-    credentials = flow.run_console()
+    if not os.path.exists('credentials.dat'):
+
+        flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
+            client_secrets_file, scopes)
+        credentials = flow.run_console()
+
+        with open('credentials.dat', 'wb') as credentials_dat:
+                pickle.dump(credentials, credentials_dat)
+    else:
+        with open('credentials.dat', 'rb') as credentials_dat:
+            credentials = pickle.load(credentials_dat)
+
+    if credentials.expired:
+        credentials.refresh(Request())
+
     youtube = googleapiclient.discovery.build(
         api_service_name, api_version, credentials=credentials)
 
@@ -36,7 +49,6 @@ def main():
             catSnippet = cat.get('snippet')
             print(catSnippet.get('assignable'))
             if (catSnippet.get('assignable') == True or catSnippet.get('assignable') == 'True'):
-                print('------------------------')
                 countryData += getDataByCountry(youtube, catId, country);
             else:
                 print("skip cat" + catId)
