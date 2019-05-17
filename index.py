@@ -1,4 +1,6 @@
 import os
+import json
+import sys, time
 
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
@@ -20,15 +22,29 @@ def main():
     youtube = googleapiclient.discovery.build(
         api_service_name, api_version, credentials=credentials)
 
-    request = youtube.videos().list(
-        part="snippet",
-        chart="mostPopular",
-        maxResults=50,
-        regionCode="AU"
-    )
-    response = request.execute()
+    test = getDataByCountry(youtube);
 
-    print(response)
+    outDir = 'test.json'
+    with open(outDir, "w+", encoding='utf-8') as file:
+        file.write(json.dumps(test))
+
+def getDataByCountry(youtube):
+    nextPageToken = '&';
+    data = []
+    while nextPageToken is not None:
+        request = youtube.videos().list(
+            part="snippet",
+            chart="mostPopular",
+            maxResults=50,
+            regionCode="AU",
+            pageToken=nextPageToken
+        )
+        response = request.execute()
+        data += response.get('items')
+        nextPageToken = response.get("nextPageToken", None);
+        nextPageToken = None
+        print(nextPageToken)
+    return data
 
 if __name__ == "__main__":
     main()
